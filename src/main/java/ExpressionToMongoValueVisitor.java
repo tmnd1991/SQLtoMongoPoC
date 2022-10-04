@@ -10,7 +10,6 @@ import org.bson.*;
 public class ExpressionToMongoValueVisitor implements ExpressionVisitor {
 
     private BsonValue value;
-
     public BsonValue getValue() {
         if (value == null) {
             throw new RuntimeException("getting null, too early");
@@ -51,7 +50,7 @@ public class ExpressionToMongoValueVisitor implements ExpressionVisitor {
 
     @Override
     public void visit(Parenthesis parenthesis) {
-        // TODO
+        parenthesis.getExpression().accept(this);
     }
 
     @Override
