@@ -71,10 +71,34 @@ public class ExpressionVisitorToMongoFilter implements ExpressionVisitor {
         filter = Filters.gte(ce.column.getColumnName(), v.getValue());
     }
 
+    private Column extractColumn(InExpression expression) {
+        if (expression.getLeftExpression() instanceof Column) {
+            return (Column) expression.getLeftExpression();
+        } else if (expression.getRightExpression() instanceof Column) {
+            return (Column) expression.getRightExpression();
+        } else {
+            throw new UnsupportedExpression("expression " + expression + " did not contain any column");
+        }
+    }
+
+    private ItemsList extractItemList(InExpression expression) {
+        if (expression.getLeftItemsList() != null) {
+            return expression.getLeftItemsList();
+        } else if (expression.getRightItemsList() != null) {
+            return expression.getRightItemsList();
+        } else {
+            throw new UnsupportedExpression("both left and right itemList of " + expression + " were null");
+        }
+    }
     @Override
     public void visit(InExpression inExpression) {
-        throw new UnsupportedExpression("Unsupported expression " + inExpression);
+        Column c = extractColumn(inExpression);
+        ItemsList itemList = extractItemList(inExpression);
+        ExpressionListToMongoValuesVisitor v = new ExpressionListToMongoValuesVisitor();
+        itemList.accept(v);
+        filter = Filters.in(c.getColumnName(),v.getValues());
     }
+
 
     @Override
     public void visit(IsNullExpression isNullExpression) {
