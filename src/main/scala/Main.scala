@@ -3,11 +3,15 @@ import net.sf.jsqlparser.parser.CCJSqlParserUtil
 object Main extends App {
 
 
-  val expr: Expression = CCJSqlParserUtil.parseCondExpression("a = 3 or country = 'italy' and name = 'antonio'")
+  def toFilter(sql: String) = {
+    val expr: Expression = CCJSqlParserUtil.parseCondExpression(sql)
 
-  val visitor = new ExpressionVisitorToMongoFilter()
-  expr.accept(visitor)
+    val visitor = new ExpressionVisitorToMongoFilter()
+    expr.accept(visitor)
+    visitor.getFilter
+  }
 
-  println(visitor.getFilter)
+
+  println(toFilter("a = 3 or country = 'italy' and name = 'antonio'"))
 
 }

@@ -90,13 +90,14 @@ public class ExpressionVisitorToMongoFilter implements ExpressionVisitor {
             throw new UnsupportedExpression("both left and right itemList of " + expression + " were null");
         }
     }
+
     @Override
     public void visit(InExpression inExpression) {
         Column c = extractColumn(inExpression);
         ItemsList itemList = extractItemList(inExpression);
         ExpressionListToMongoValuesVisitor v = new ExpressionListToMongoValuesVisitor();
         itemList.accept(v);
-        filter = Filters.in(c.getColumnName(),v.getValues());
+        filter = Filters.in(c.getColumnName(), v.getValues());
     }
 
 
@@ -105,25 +106,27 @@ public class ExpressionVisitorToMongoFilter implements ExpressionVisitor {
         if (isNullExpression.getLeftExpression() instanceof Column) {
             final String columnName = ((Column) isNullExpression.getLeftExpression()).getColumnName();
             filter = Filters.or(
-                    Filters.exists(columnName),
-                    Filters.eq(columnName, BsonNull.VALUE)
+                    Filters.exists(columnName, isNullExpression.isNot()),
+                    isNullExpression.isNot() ? Filters.ne(columnName, BsonNull.VALUE) : Filters.eq(columnName, BsonNull.VALUE)
             );
         } else {
             throw new UnsupportedExpression("Left expression of isNull should be a column, found " + isNullExpression.getLeftExpression());
         }
     }
 
+
     @Override
     public void visit(IsBooleanExpression isBooleanExpression) {
         if (isBooleanExpression.getLeftExpression() instanceof Column) {
             Column column = (Column) isBooleanExpression.getLeftExpression();
-            if (isBooleanExpression.isNot()) {
+            // logic table of isTrue | isNot is exactly a xor :)
+            if (isBooleanExpression.isTrue() ^ isBooleanExpression.isNot()) {
+                filter = Filters.eq(column.getColumnName(), BsonBoolean.TRUE);
+            } else {
                 filter = Filters.or(
                         Filters.eq(column.getColumnName(), BsonBoolean.FALSE),
                         Filters.exists(column.getColumnName(), false)
                 );
-            } else {
-                filter = Filters.eq(column.getColumnName(), BsonBoolean.TRUE);
             }
         } else {
             throw new UnsupportedExpression("isBoolean left expression must be a column, instead we got " + isBooleanExpression.getLeftExpression());
